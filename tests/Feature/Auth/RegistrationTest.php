@@ -36,6 +36,12 @@ class RegistrationTest extends TestCase
         $this->assertSame('Budi Santoso', $user->name);
         $this->assertSame('IDR', $user->currency);
         $this->assertTrue(Hash::check('rahasia123', $user->password));
+
+        $this->assertSame(1, $user->wallets()->count());
+        $this->assertSame('Tunai', $user->wallets()->first()->name);
+        $this->assertSame(12, $user->categories()->count());
+        $this->assertSame(8, $user->categories()->where('type', 'expense')->count());
+        $this->assertSame(4, $user->categories()->where('type', 'income')->count());
     }
 
     public function test_registration_requires_valid_data(): void

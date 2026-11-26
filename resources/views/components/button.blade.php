@@ -1,4 +1,4 @@
-@props(['variant' => 'primary', 'type' => 'button'])
+@props(['variant' => 'primary', 'type' => 'button', 'href' => null])
 
 @php
 $classes = match($variant) {
@@ -8,11 +8,18 @@ $classes = match($variant) {
     'ghost' => 'hover:bg-neutral-100 text-neutral-700 focus-visible:outline-neutral-500',
     default => 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm focus-visible:outline-emerald-600',
 };
+$baseClasses = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed $classes";
 @endphp
 
-<button
-    type="{{ $type }}"
-    {{ $attributes->merge(['class' => "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50 disabled:cursor-not-allowed $classes"]) }}
->
-    {{ $slot }}
-</button>
+@if ($href)
+    <a href="{{ $href }}" {{ $attributes->merge(['class' => $baseClasses]) }}>
+        {{ $slot }}
+    </a>
+@else
+    <button
+        type="{{ $type }}"
+        {{ $attributes->merge(['class' => $baseClasses]) }}
+    >
+        {{ $slot }}
+    </button>
+@endif

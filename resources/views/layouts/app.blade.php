@@ -154,6 +154,14 @@
                     </div>
                 @endif
 
+                @if (session('error'))
+                    <div class="mb-6">
+                        <x-alert type="danger">
+                            {{ session('error') }}
+                        </x-alert>
+                    </div>
+                @endif
+
                 {{ $slot }}
             </div>
         </main>

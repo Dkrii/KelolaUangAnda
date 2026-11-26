@@ -62,45 +62,72 @@
             </x-stat-card>
         </div>
 
-        <!-- Grid: Charts area & recent transactions -->
+        <!-- Quick Actions -->
+        <x-card>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 class="text-sm font-semibold text-neutral-900">Aksi Cepat</h2>
+                    <p class="text-xs text-neutral-500">Catat aktivitas keuangan Anda dengan cepat.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <x-button variant="secondary" :href="route('transactions.create', ['type' => 'income'])">+ Pemasukan</x-button>
+                    <x-button variant="secondary" :href="route('transactions.create', ['type' => 'expense'])">- Pengeluaran</x-button>
+                    <x-button variant="secondary" :href="route('transfers.create')">Transfer</x-button>
+                </div>
+            </div>
+        </x-card>
+
+        <!-- Grid: Charts area -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <!-- Chart placeholder (Phase 3) -->
             <div class="lg:col-span-2">
                 <x-card>
-                    <div class="flex items-center justify-between border-b border-neutral-200/80 pb-4 mb-4">
-                        <div>
-                            <h2 class="text-sm font-semibold text-neutral-900">Arus Kas Masuk vs Keluar</h2>
-                            <p class="text-xs text-neutral-500">Perbandingan pemasukan dan pengeluaran</p>
-                        </div>
-                        <span class="rounded bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
-                            Phase 3
-                        </span>
+                    <div class="mb-4 border-b border-neutral-200/80 pb-4">
+                        <h2 class="text-sm font-semibold text-neutral-900">Arus Kas Masuk vs Keluar</h2>
+                        <p class="text-xs text-neutral-500">Perbandingan 6 bulan terakhir</p>
                     </div>
-
-                    <x-empty-state
-                        title="Grafik akan aktif di Phase 3"
-                        description="Visualisasi Chart.js akan membaca data transaksi nyata setelah modul Transaksi diimplementasikan pada Phase 2."
-                    />
+                    @if (array_sum($summary['chartData']['cashFlow']['income']) === 0.0 && array_sum($summary['chartData']['cashFlow']['expense']) === 0.0)
+                        <x-empty-state
+                            title="Belum ada arus kas"
+                            description="Catat pemasukan atau pengeluaran untuk melihat grafik arus kas Anda."
+                        />
+                    @else
+                        <div class="h-72">
+                            <canvas
+                                id="cashFlowChart"
+                                role="img"
+                                aria-label="Grafik arus kas masuk dan keluar 6 bulan terakhir"
+                            ></canvas>
+                        </div>
+                    @endif
+                    <script type="application/json" id="cashFlowChartData">
+                        @json($summary['chartData']['cashFlow'])
+                    </script>
                 </x-card>
             </div>
 
-            <!-- Expense Category Breakdown (Phase 3) -->
             <div>
                 <x-card>
-                    <div class="flex items-center justify-between border-b border-neutral-200/80 pb-4 mb-4">
-                        <div>
-                            <h2 class="text-sm font-semibold text-neutral-900">Pengeluaran per Kategori</h2>
-                            <p class="text-xs text-neutral-500">Bulan ini</p>
-                        </div>
-                        <span class="rounded bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600">
-                            Phase 3
-                        </span>
+                    <div class="mb-4 border-b border-neutral-200/80 pb-4">
+                        <h2 class="text-sm font-semibold text-neutral-900">Pengeluaran per Kategori</h2>
+                        <p class="text-xs text-neutral-500">Bulan ini</p>
                     </div>
-
-                    <x-empty-state
-                        title="Belum ada data kategori"
-                        description="Kategori pengeluaran akan muncul setelah Anda mulai mencatat transaksi."
-                    />
+                    @if (empty($summary['chartData']['categories']['labels']))
+                        <x-empty-state
+                            title="Belum ada data kategori"
+                            description="Pengeluaran per kategori bulan ini akan tampil di sini."
+                        />
+                    @else
+                        <div class="relative h-64">
+                            <canvas
+                                id="expenseCategoryChart"
+                                role="img"
+                                aria-label="Grafik pengeluaran per kategori bulan ini"
+                            ></canvas>
+                        </div>
+                    @endif
+                    <script type="application/json" id="expenseCategoryChartData">
+                        @json($summary['chartData']['categories'])
+                    </script>
                 </x-card>
             </div>
         </div>
@@ -112,18 +139,82 @@
                     <h2 class="text-sm font-semibold text-neutral-900">Transaksi Terbaru</h2>
                     <p class="text-xs text-neutral-500">Aktivitas keuangan paling akhir</p>
                 </div>
-                <span class="rounded bg-emerald-50 text-emerald-700 px-2 py-0.5 text-[11px] font-medium border border-emerald-100">
-                    Phase 2: CRUD Transaksi
-                </span>
+                <a
+                    href="{{ route('transactions.index') }}"
+                    class="rounded-lg px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+                >
+                    Lihat semua &rarr;
+                </a>
             </div>
 
             @if ($summary['recentTransactions']->isEmpty())
                 <x-empty-state
                     title="Belum ada transaksi"
                     description="Seluruh pencatatan pemasukan, pengeluaran, dan transfer antar dompet akan muncul di sini."
-                />
+                >
+                    <x-button :href="route('transactions.create')">Catat Transaksi Pertama</x-button>
+                </x-empty-state>
             @else
-                {{-- Table will render in Phase 2 when transactions exist --}}
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[560px] text-left text-sm">
+                        <thead>
+                            <tr class="border-b border-neutral-200 text-xs uppercase tracking-wider text-neutral-500">
+                                <th class="py-2.5 pr-4 font-medium">Tanggal</th>
+                                <th class="py-2.5 pr-4 font-medium">Keterangan</th>
+                                <th class="py-2.5 pr-4 font-medium">Dompet</th>
+                                <th class="py-2.5 pr-4 font-medium">Jenis</th>
+                                <th class="py-2.5 text-right font-medium">Nominal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-neutral-100">
+                            @foreach ($summary['recentTransactions'] as $transaction)
+                                @php
+                                    $variant = match ($transaction->type) {
+                                        \App\Enums\TransactionType::Income => 'emerald',
+                                        \App\Enums\TransactionType::Expense => 'rose',
+                                        \App\Enums\TransactionType::Transfer => 'indigo',
+                                    };
+                                @endphp
+                                <tr class="hover:bg-neutral-50/60">
+                                    <td class="py-3 pr-4 whitespace-nowrap text-neutral-600">
+                                        {{ $transaction->transaction_date->format('d M Y') }}
+                                    </td>
+                                    <td class="py-3 pr-4">
+                                        <a
+                                            href="{{ route('transactions.show', $transaction) }}"
+                                            class="font-medium text-neutral-900 hover:text-emerald-700"
+                                        >
+                                            {{ $transaction->description ?: 'Tanpa keterangan' }}
+                                        </a>
+                                        @if ($transaction->category)
+                                            <p class="text-xs text-neutral-400">{{ $transaction->category->name }}</p>
+                                        @endif
+                                    </td>
+                                    <td class="py-3 pr-4 text-neutral-600">
+                                        {{ $transaction->wallet?->name ?? '-' }}
+                                        @if ($transaction->type->isTransfer() && $transaction->destinationWallet)
+                                            <span class="text-neutral-400">&rarr;</span>
+                                            {{ $transaction->destinationWallet->name }}
+                                        @endif
+                                    </td>
+                                    <td class="py-3 pr-4">
+                                        <x-badge :variant="$variant">{{ $transaction->type->label() }}</x-badge>
+                                    </td>
+                                    <td class="py-3 text-right whitespace-nowrap font-medium">
+                                        <span class="{{ $transaction->type === \App\Enums\TransactionType::Income ? 'text-emerald-600' : ($transaction->type === \App\Enums\TransactionType::Expense ? 'text-rose-600' : 'text-neutral-700') }}">
+                                            @if ($transaction->type === \App\Enums\TransactionType::Income)
+                                                +
+                                            @elseif ($transaction->type === \App\Enums\TransactionType::Expense)
+                                                &minus;
+                                            @endif
+                                            <x-money :amount="$transaction->amount" />
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @endif
         </x-card>
     </div>
