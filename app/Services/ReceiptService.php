@@ -150,13 +150,14 @@ class ReceiptService
     private function storeExtraction(Receipt $receipt, array $data): void
     {
         $items = is_array($data['items'] ?? null) ? $data['items'] : [];
+        $total = array_key_exists('total_amount', $data) ? $data['total_amount'] : ($data['total'] ?? null);
 
-        DB::transaction(function () use ($receipt, $data, $items) {
+        DB::transaction(function () use ($receipt, $data, $items, $total) {
             $receipt->update([
                 'status' => ReceiptStatus::Review->value,
                 'merchant' => $this->nullableString($data['merchant'] ?? null),
                 'transaction_date' => $this->parseDate($data['transaction_date'] ?? null)?->toDateString(),
-                'total' => $this->parseAmount($data['total'] ?? null),
+                'total' => $this->parseAmount($total),
                 'ocr_data' => $data,
             ]);
 

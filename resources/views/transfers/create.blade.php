@@ -67,6 +67,7 @@
                             step="0.01"
                             min="0.01"
                             class="mt-1"
+                            data-nominal
                             :value="old('amount')"
                             placeholder="0.00"
                             :error="$errors->has('amount')"

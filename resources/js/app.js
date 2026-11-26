@@ -189,8 +189,100 @@ function initCharts() {
     }
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCharts);
-} else {
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+
+    if (!(form instanceof HTMLFormElement) || !form.matches('form[data-confirm-delete]')) {
+        return;
+    }
+
+    if (form.dataset.confirmed === 'true') {
+        delete form.dataset.confirmed;
+        return;
+    }
+
+    event.preventDefault();
+
+    window.dispatchEvent(new CustomEvent('open-delete-modal', {
+        detail: {
+            form,
+            message: form.dataset.confirmDelete || 'Tindakan ini tidak bisa dibatalkan.',
+        },
+    }));
+});
+
+function initNominalInputs() {
+    document.querySelectorAll('input[data-nominal]').forEach((input) => {
+        input.addEventListener('focus', () => {
+            if (input.value === '0' || input.value === '0.00') {
+                input.value = '';
+            }
+        });
+
+        input.addEventListener('input', () => {
+            const cleaned = input.value.replace(/^0+(?=\d)/, '');
+
+            if (cleaned !== input.value) {
+                input.value = cleaned;
+            }
+        });
+    });
+}
+
+function initReceiptStatusPolling() {
+    const root = document.querySelector('[data-receipt-status][data-receipt-status-url]');
+
+    if (!root || root.dataset.receiptStatus !== 'pending') {
+        return;
+    }
+
+    const loading = root.querySelector('[data-ocr-loading]');
+    let attempts = 0;
+
+    const poll = async () => {
+        if (attempts >= 60) {
+            if (loading) {
+                loading.textContent = 'Pemindaian memakan waktu lebih lama. Muat ulang halaman untuk memeriksa status.';
+            }
+
+            return;
+        }
+
+        attempts += 1;
+        let completed = false;
+
+        try {
+            const response = await fetch(root.dataset.receiptStatusUrl, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (data.status && data.status !== root.dataset.receiptStatus) {
+                    completed = true;
+                    window.location.reload();
+                }
+            }
+        } catch {}
+
+        if (!completed) {
+            window.setTimeout(poll, 3000);
+        }
+    };
+
+    window.setTimeout(poll, 3000);
+}
+
+function boot() {
     initCharts();
+    initNominalInputs();
+    initReceiptStatusPolling();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+} else {
+    boot();
 }

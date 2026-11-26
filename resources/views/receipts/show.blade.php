@@ -11,7 +11,11 @@
         }
     @endphp
 
-    <div class="space-y-6">
+    <div
+        class="space-y-6"
+        data-receipt-status="{{ $receipt->status->value }}"
+        data-receipt-status-url="{{ route('receipts.status', $receipt) }}"
+    >
         <div class="flex flex-wrap items-center justify-between gap-3">
             <x-button variant="secondary" :href="route('receipts.index')">&larr; Kembali</x-button>
             <x-badge :variant="$receipt->status->badgeVariant()">{{ $receipt->status->label() }}</x-badge>
@@ -19,7 +23,18 @@
 
         @if ($receipt->status === \App\Enums\ReceiptStatus::Pending)
             <x-alert type="info" title="Sedang diproses">
-                Gambar sedang dibaca oleh layanan OCR. Muat ulang halaman ini beberapa saat lagi.
+                <div
+                    class="flex items-center gap-2"
+                    role="status"
+                    aria-live="polite"
+                    data-ocr-loading
+                >
+                    <span
+                        class="size-4 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600 motion-reduce:animate-none"
+                        aria-hidden="true"
+                    ></span>
+                    <span>Membaca struk dengan OCR. Halaman ini akan diperbarui otomatis setelah selesai.</span>
+                </div>
             </x-alert>
         @endif
 
@@ -201,6 +216,7 @@
                                     step="0.01"
                                     min="0.01"
                                     required
+                                    data-nominal
                                     :value="old('amount', $receipt->total !== null ? number_format((float) $receipt->total, 2, '.', '') : '')"
                                     :error="$errors->has('amount')"
                                 />
@@ -245,7 +261,7 @@
         <form
             method="POST"
             action="{{ route('receipts.destroy', $receipt) }}"
-            onsubmit="return confirm('Hapus struk ini? Transaksi yang sudah dibuat tetap tersimpan.');"
+            data-confirm-delete="Hapus struk ini? Transaksi yang sudah dibuat tetap tersimpan."
         >
             @csrf
             @method('DELETE')

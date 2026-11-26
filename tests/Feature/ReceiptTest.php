@@ -34,6 +34,35 @@ class ReceiptTest extends TestCase
         $this->get(route('receipts.create'))->assertRedirect('/login');
     }
 
+    public function test_status_endpoint_redirects_guest_to_login(): void
+    {
+        $receipt = $this->reviewReceipt(User::factory()->create(), ReceiptStatus::Pending);
+
+        $this->get(route('receipts.status', $receipt))->assertRedirect('/login');
+    }
+
+    public function test_status_endpoint_returns_pending_status_for_owner(): void
+    {
+        $receipt = $this->reviewReceipt(User::factory()->create(), ReceiptStatus::Pending);
+
+        $this->actingAs($receipt->user)
+            ->get(route('receipts.status', $receipt))
+            ->assertOk()
+            ->assertJson(['status' => ReceiptStatus::Pending->value]);
+    }
+
+    public function test_show_page_shows_loading_indicator_while_processing(): void
+    {
+        $receipt = $this->reviewReceipt(User::factory()->create(), ReceiptStatus::Pending);
+
+        $this->actingAs($receipt->user)
+            ->get(route('receipts.show', $receipt))
+            ->assertOk()
+            ->assertSee('data-receipt-status="pending"', false)
+            ->assertSee('data-ocr-loading', false)
+            ->assertSee('animate-spin', false);
+    }
+
     public function test_upload_page_renders(): void
     {
         $user = User::factory()->create();
@@ -42,7 +71,8 @@ class ReceiptTest extends TestCase
             ->get(route('receipts.create'))
             ->assertOk()
             ->assertSee('Unggah Struk')
-            ->assertSee('enctype="multipart/form-data"', false);
+            ->assertSee('enctype="multipart/form-data"', false)
+            ->assertSee('capture="environment"', false);
     }
 
     public function test_upload_sends_image_to_ocr_and_stores_extraction(): void
@@ -76,6 +106,25 @@ class ReceiptTest extends TestCase
                 && $request->hasHeader('X-OCR-Token', 'test-token')
                 && $request->hasFile('file');
         });
+    }
+
+    public function test_upload_prefers_canonical_integer_total_amount(): void
+    {
+        Storage::fake('local');
+        Http::fake(['*' => Http::response(array_merge($this->ocrPayload(), [
+            'total' => '99999.00',
+            'total_amount' => 25000,
+        ]))]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('receipts.store'), [
+            'image' => UploadedFile::fake()->image('struk.png', 640, 480)->size(128),
+        ]);
+
+        $receipt = Receipt::query()->firstOrFail();
+
+        $this->assertSame('25000.00', (string) $receipt->total);
     }
 
     public function test_upload_rejects_invalid_image_and_oversized_file(): void
@@ -220,6 +269,7 @@ class ReceiptTest extends TestCase
         $otherReceipt = $this->reviewReceipt(User::factory()->create());
 
         $this->actingAs($user)->get(route('receipts.show', $otherReceipt))->assertForbidden();
+        $this->actingAs($user)->get(route('receipts.status', $otherReceipt))->assertForbidden();
         $this->actingAs($user)->get(route('receipts.image', $otherReceipt))->assertForbidden();
         $this->actingAs($user)->delete(route('receipts.destroy', $otherReceipt))->assertForbidden();
     }

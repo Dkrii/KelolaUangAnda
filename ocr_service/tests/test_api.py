@@ -44,6 +44,8 @@ def test_ocr_requires_valid_token(client, png_bytes, fake_engine):
     body = response.json()
     assert body["merchant"] == "TOKO SUMBER REJEKI"
     assert body["total"] == "7000.00"
+    assert body["total_amount"] == 7000
+    assert body["currency"] == "IDR"
     assert body["items"][0]["name"] == "Indomie"
     assert body["ocr_confidence"] == 0.975
 

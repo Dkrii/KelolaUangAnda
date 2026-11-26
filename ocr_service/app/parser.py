@@ -15,7 +15,25 @@ DATE_PATTERNS = [
     (re.compile(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2})\b"), "dmy"),
 ]
 
-TOTAL_LABEL_PATTERN = re.compile(r"\b(?:grand\s*total|total\s*bayar|total|jumlah|tagihan)\b", re.IGNORECASE)
+TOTAL_LABEL_PATTERNS = (
+    (re.compile(r"\bgrand\s*total\b", re.IGNORECASE), 3),
+    (re.compile(r"\btotal\s*belanja\b", re.IGNORECASE), 3),
+    (re.compile(r"\btotal\s*bayar\b", re.IGNORECASE), 3),
+    (re.compile(r"\btotal\b", re.IGNORECASE), 2),
+    (re.compile(r"\bjumlah\b", re.IGNORECASE), 1),
+    (re.compile(r"\btagihan\b", re.IGNORECASE), 1),
+)
+TOTAL_LABEL_PATTERN = re.compile(
+    r"\b(?:grand\s*total|total\s*belanja|total\s*bayar|total|jumlah|tagihan)\b",
+    re.IGNORECASE,
+)
+NON_TOTAL_LABEL_PATTERN = re.compile(
+    r"\b(?:tunai|cash|kembalian|kembali|diskon|discount|disc|potongan|hemat|"
+    r"dpp|ppn|pajak|tax|harga\s*jual|subtotal|no\.?|tgl|tanggal|jam|waktu|kasir)\b",
+    re.IGNORECASE,
+)
+AMOUNT_ONLY_PATTERN = re.compile(r"^(?:Rp\.?\s*)?[\d.,]+$")
+IDENTIFIER_PATTERN = re.compile(r"^\d{10,}$")
 ITEM_QTY_UNIT_PATTERN = re.compile(
     r"^(?P<name>.{2,}?)\s+(?P<qty>\d{1,3}(?:[.,]\d+)?)\s*[xX]\s*(?P<unit>\d[\d.,]*)(?:\s+(?P<amount>\d[\d.,]*))?$"
 )
@@ -130,6 +148,72 @@ def _last_amount(line: str) -> Decimal | None:
     return parse_amount(amounts[-1])
 
 
+def _best_total_label(line: str) -> tuple[re.Match[str], int] | None:
+    best: tuple[re.Match[str], int] | None = None
+    for pattern, priority in TOTAL_LABEL_PATTERNS:
+        match = pattern.search(line)
+        if match is not None and (best is None or priority > best[1]):
+            best = (match, priority)
+    return best
+
+
+def _amount_after_label(line: str, label_match: re.Match[str]) -> Decimal | None:
+    tail = line[label_match.end():]
+    cutoff = NON_TOTAL_LABEL_PATTERN.search(tail)
+    if cutoff is not None:
+        tail = tail[: cutoff.start()]
+
+    for found in AMOUNT_PATTERN.finditer(tail):
+        token = found.group(1)
+        if IDENTIFIER_PATTERN.fullmatch(token):
+            continue
+        amount = parse_amount(token)
+        if amount is not None:
+            return amount
+
+    return None
+
+
+def _amount_on_following_line(lines: list[str], index: int) -> Decimal | None:
+    if index + 1 >= len(lines):
+        return None
+
+    next_line = lines[index + 1].strip()
+    if TOTAL_LABEL_PATTERN.search(next_line) or NON_TOTAL_LABEL_PATTERN.search(next_line):
+        return None
+    if not AMOUNT_ONLY_PATTERN.fullmatch(next_line):
+        return None
+
+    token = re.sub(r"(?i)^rp\.?\s*", "", next_line)
+    if IDENTIFIER_PATTERN.fullmatch(token):
+        return None
+
+    return parse_amount(token)
+
+
+def _extract_total(lines: list[str]) -> tuple[Decimal | None, str | None]:
+    candidates: list[tuple[int, int, Decimal]] = []
+
+    for index, line in enumerate(lines):
+        label = _best_total_label(line)
+        if label is None:
+            continue
+
+        match, priority = label
+        amount = _amount_after_label(line, match)
+        if amount is None:
+            amount = _amount_on_following_line(lines, index)
+        if amount is not None:
+            candidates.append((priority, index, amount))
+
+    if not candidates:
+        return None, None
+
+    highest_priority = max(priority for priority, _, _ in candidates)
+    best = next(candidate for candidate in reversed(candidates) if candidate[0] == highest_priority)
+    return best[2], "label"
+
+
 def _suggest_category(lines: list[str]) -> str | None:
     joined = " ".join(lines).upper()
     for keywords, category in CATEGORY_KEYWORDS:
@@ -143,17 +227,8 @@ def parse_receipt_text(text: str) -> dict:
     merchant = next((line for line in lines if not _is_noise(line)), None)
     transaction_date = next((found for line in lines if (found := parse_date(line))), None)
 
-    total = None
-    for line in reversed(lines):
-        if TOTAL_LABEL_PATTERN.search(line) and "SUBTOTAL" not in line.upper():
-            total = _last_amount(line)
-            if total is not None:
-                break
-
-    if total is None:
-        candidates = [amount for line in lines if (amount := _last_amount(line)) is not None]
-        if candidates:
-            total = max(candidates)
+    total, total_source = _extract_total(lines)
+    total_amount = int(total) if total is not None and total == total.to_integral_value() else None
 
     tax = None
     discount = None
@@ -207,8 +282,8 @@ def parse_receipt_text(text: str) -> dict:
         )
     if transaction_date is None:
         warnings.append("Tanggal transaksi tidak terdeteksi. Isi manual sebelum menyimpan.")
-    if total is None:
-        warnings.append("Total pembayaran tidak terdeteksi. Isi manual sebelum menyimpan.")
+    if total_amount is None:
+        warnings.append("Total tidak terdeteksi dengan pasti dari label struk. Isi manual sebelum menyimpan.")
 
     return {
         "merchant": merchant[:255] if merchant else None,
@@ -218,8 +293,15 @@ def parse_receipt_text(text: str) -> dict:
         "tax": f"{tax:.2f}" if tax is not None else None,
         "discount": f"{discount:.2f}" if discount is not None else None,
         "total": f"{total:.2f}" if total is not None else None,
+        "total_amount": total_amount,
+        "currency": "IDR",
         "suggested_category": _suggest_category(lines),
         "raw_text": text,
         "warnings": warnings,
-        "metadata": {"parser": "receipt-rules-v1", "line_count": len(lines)},
+        "metadata": {
+            "parser": "receipt-rules-v2",
+            "line_count": len(lines),
+            "total_source": total_source,
+            "needs_manual_verification": total_amount is None,
+        },
     }

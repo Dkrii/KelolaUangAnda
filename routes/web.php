@@ -37,6 +37,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('receipts.store');
     Route::get('/receipts/{receipt}/image', [ReceiptController::class, 'image'])
         ->name('receipts.image');
+    Route::get('/receipts/{receipt}/status', [ReceiptController::class, 'status'])
+        ->name('receipts.status');
     Route::post('/receipts/{receipt}/retry', [ReceiptController::class, 'retry'])
         ->name('receipts.retry');
     Route::post('/receipts/{receipt}/confirm', [ReceiptController::class, 'confirm'])

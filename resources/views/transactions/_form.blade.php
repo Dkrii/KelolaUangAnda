@@ -138,6 +138,7 @@ if (! in_array($currentType, ['income', 'expense', 'transfer'], true)) {
                 step="0.01"
                 min="0.01"
                 class="mt-1"
+                data-nominal
                 :value="old('amount', $transaction?->amount)"
                 placeholder="0.00"
                 :error="$errors->has('amount')"

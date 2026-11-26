@@ -24,12 +24,13 @@
                         name="image"
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
+                        capture="environment"
                         required
                         :error="$errors->has('image')"
                         class="file:mr-3 file:rounded-md file:border-0 file:bg-emerald-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-emerald-700"
                     />
                     <x-input-error :messages="$errors->get('image')" class="mt-2" />
-                    <p class="mt-2 text-xs text-neutral-500">Format JPG, PNG, atau WebP. Ukuran maksimal 10 MB.</p>
+                    <p class="mt-2 text-xs text-neutral-500">Format JPG, PNG, atau WebP. Ukuran maksimal 10 MB. Di ponsel atau tablet, tombol ini membuka kamera.</p>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 border-t border-neutral-200/80 pt-5">

@@ -38,7 +38,7 @@
                         >
                             Ubah
                         </a>
-                        <form method="POST" action="{{ route('categories.destroy', $category) }}" onsubmit="return confirm('Hapus kategori ini?');">
+                        <form method="POST" action="{{ route('categories.destroy', $category) }}" data-confirm-delete="Hapus kategori ini?">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50">

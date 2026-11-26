@@ -18,7 +18,7 @@
                 <form
                     method="POST"
                     action="{{ route('transactions.destroy', $transaction) }}"
-                    onsubmit="return confirm('Hapus transaksi ini? Saldo akan disesuaikan.');"
+                    data-confirm-delete="Hapus transaksi ini? Saldo akan disesuaikan."
                 >
                     @csrf
                     @method('DELETE')

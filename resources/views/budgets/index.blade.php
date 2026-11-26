@@ -121,7 +121,7 @@
                                             <form
                                                 method="POST"
                                                 action="{{ route('budgets.destroy', $budget) }}"
-                                                onsubmit="return confirm('Hapus anggaran ini?')"
+                                                data-confirm-delete="Hapus anggaran ini?"
                                             >
                                                 @csrf
                                                 @method('DELETE')

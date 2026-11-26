@@ -12,7 +12,7 @@
             <x-button variant="secondary" :href="route('saving-goals.index')">&larr; Kembali</x-button>
             <div class="flex gap-2">
                 <x-button variant="secondary" :href="route('saving-goals.edit', $goal)">Ubah</x-button>
-                <form method="POST" action="{{ route('saving-goals.destroy', $goal) }}" onsubmit="return confirm('Hapus target tabungan ini beserta riwayat setorannya?');">
+                <form method="POST" action="{{ route('saving-goals.destroy', $goal) }}" data-confirm-delete="Hapus target tabungan ini beserta riwayat setorannya?">
                     @csrf
                     @method('DELETE')
                     <x-button type="submit" variant="danger">Hapus</x-button>
@@ -64,7 +64,7 @@
                     @csrf
                     <div>
                         <x-label for="amount">Nominal Setoran</x-label>
-                        <x-input id="amount" name="amount" type="number" min="0.01" step="0.01" value="{{ old('amount') }}" class="mt-1" :error="$errors->has('amount')" required />
+                        <x-input id="amount" name="amount" type="number" min="0.01" step="0.01" value="{{ old('amount') }}" class="mt-1" data-nominal :error="$errors->has('amount')" required />
                         <x-input-error :messages="$errors->get('amount')" />
                     </div>
                     <div>

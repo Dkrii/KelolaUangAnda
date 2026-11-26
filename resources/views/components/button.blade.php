@@ -4,6 +4,9 @@
 $classes = match($variant) {
     'primary' => 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm focus-visible:outline-emerald-600',
     'secondary' => 'bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 shadow-sm focus-visible:outline-neutral-500',
+    'emerald' => 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm focus-visible:outline-emerald-600',
+    'rose' => 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm focus-visible:outline-rose-600',
+    'indigo' => 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm focus-visible:outline-indigo-600',
     'danger' => 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm focus-visible:outline-rose-600',
     'ghost' => 'hover:bg-neutral-100 text-neutral-700 focus-visible:outline-neutral-500',
     default => 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm focus-visible:outline-emerald-600',

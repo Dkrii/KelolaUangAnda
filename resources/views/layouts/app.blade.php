@@ -132,19 +132,20 @@
                 <div class="flex items-center gap-3">
                     <a
                         href="{{ route('profile.edit') }}"
-                        class="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 shadow-2xs hover:bg-neutral-50 transition"
+                        class="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 text-xs font-medium text-neutral-700 shadow-2xs hover:bg-neutral-50 transition sm:px-3"
+                        aria-label="Buka profil {{ auth()->user()->name }}"
                     >
                         <svg class="h-4 w-4 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                        <span>{{ auth()->user()->name }}</span>
+                        <span class="hidden sm:inline">{{ auth()->user()->name }}</span>
                     </a>
                 </div>
             </div>
         </header>
 
         <!-- Main slot -->
-        <main class="flex-1 py-8 px-4 sm:px-6 lg:px-8">
+        <main class="flex-1 px-4 pt-6 pb-28 sm:px-6 sm:pt-8 lg:px-8 lg:pb-8">
             <div class="mx-auto max-w-7xl">
                 @if (session('status'))
                     <div class="mb-6">
@@ -166,5 +167,78 @@
             </div>
         </main>
     </div>
+
+    <div
+        x-data="{ open: false, message: '', form: null }"
+        x-on:open-delete-modal.window="open = true; message = $event.detail.message; form = $event.detail.form; $nextTick(() => $refs.confirmButton.focus())"
+        x-on:keydown.escape.window="open = false; form = null"
+        x-show="open"
+        x-cloak
+        class="fixed inset-0 z-[60] flex items-end justify-center p-4 sm:items-center"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-modal-title"
+    >
+        <div
+            class="absolute inset-0 bg-neutral-900/60 backdrop-blur-xs"
+            x-on:click="open = false; form = null"
+        ></div>
+
+        <div class="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div class="flex items-start gap-4">
+                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600">
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 9v4m0 4h.01M10.29 3.86l-8.2 14.14A2 2 0 003.83 21h16.34a2 2 0 001.74-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                    </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <h2 id="delete-modal-title" class="text-base font-semibold text-neutral-900">Hapus data ini?</h2>
+                    <p class="mt-1 text-sm leading-relaxed text-neutral-600" x-text="message || 'Tindakan ini tidak bisa dibatalkan.'"></p>
+                </div>
+            </div>
+
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <x-button variant="secondary" type="button" x-on:click="open = false; form = null" class="w-full sm:w-auto">
+                    Batal
+                </x-button>
+                <x-button
+                    variant="danger"
+                    type="button"
+                    x-ref="confirmButton"
+                    x-on:click="if (form) { form.dataset.confirmed = 'true'; form.requestSubmit(); }"
+                    class="w-full sm:w-auto"
+                >
+                    Ya, hapus
+                </x-button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Navigasi utama">
+        @php
+            $bottomNavItems = [
+                ['label' => 'Dashboard', 'route' => 'dashboard', 'active' => request()->routeIs('dashboard'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>'],
+                ['label' => 'Transaksi', 'route' => 'transactions.index', 'active' => request()->routeIs('transactions.*', 'transfers.*'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>'],
+                ['label' => 'Dompet', 'route' => 'wallets.index', 'active' => request()->routeIs('wallets.*'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>'],
+                ['label' => 'Anggaran', 'route' => 'budgets.index', 'active' => request()->routeIs('budgets.*'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>'],
+                ['label' => 'Scan', 'route' => 'receipts.index', 'active' => request()->routeIs('receipts.*'), 'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>'],
+            ];
+        @endphp
+
+        <div class="grid grid-cols-5">
+            @foreach ($bottomNavItems as $item)
+                <a
+                    href="{{ route($item['route']) }}"
+                    @if ($item['active']) aria-current="page" @endif
+                    class="flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-[11px] font-medium transition {{ $item['active'] ? 'text-emerald-700' : 'text-neutral-500 hover:text-neutral-700' }}"
+                >
+                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        {!! $item['icon'] !!}
+                    </svg>
+                    <span>{{ $item['label'] }}</span>
+                </a>
+            @endforeach
+        </div>
+    </nav>
 </body>
 </html>

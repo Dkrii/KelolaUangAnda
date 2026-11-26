@@ -53,7 +53,7 @@
                         <div class="mt-5 flex flex-wrap gap-2">
                             <x-button variant="secondary" :href="route('saving-goals.show', $goal)">Detail</x-button>
                             <x-button variant="secondary" :href="route('saving-goals.edit', $goal)">Ubah</x-button>
-                            <form method="POST" action="{{ route('saving-goals.destroy', $goal) }}" onsubmit="return confirm('Hapus target tabungan ini beserta riwayat setorannya?');">
+                            <form method="POST" action="{{ route('saving-goals.destroy', $goal) }}" data-confirm-delete="Hapus target tabungan ini beserta riwayat setorannya?">
                                 @csrf
                                 @method('DELETE')
                                 <x-button type="submit" variant="danger">Hapus</x-button>

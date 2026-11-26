@@ -69,10 +69,25 @@
                     <h2 class="text-sm font-semibold text-neutral-900">Aksi Cepat</h2>
                     <p class="text-xs text-neutral-500">Catat aktivitas keuangan Anda dengan cepat.</p>
                 </div>
-                <div class="flex flex-wrap gap-2">
-                    <x-button variant="secondary" :href="route('transactions.create', ['type' => 'income'])">+ Pemasukan</x-button>
-                    <x-button variant="secondary" :href="route('transactions.create', ['type' => 'expense'])">- Pengeluaran</x-button>
-                    <x-button variant="secondary" :href="route('transfers.create')">Transfer</x-button>
+                <div class="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
+                    <x-button variant="emerald" :href="route('transactions.create', ['type' => 'income'])" class="w-full sm:w-auto">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Pemasukan
+                    </x-button>
+                    <x-button variant="rose" :href="route('transactions.create', ['type' => 'expense'])" class="w-full sm:w-auto">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                        </svg>
+                        Pengeluaran
+                    </x-button>
+                    <x-button variant="indigo" :href="route('transfers.create')" class="w-full sm:w-auto">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Transfer
+                    </x-button>
                 </div>
             </div>
         </x-card>

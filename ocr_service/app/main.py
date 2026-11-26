@@ -28,8 +28,8 @@ def health() -> dict:
 
 @app.post("/ocr")
 async def scan(
-    file: Annotated[UploadFile, File()],
-    _: Annotated[None, Depends(verify_token)],
+    file: Annotated[UploadFile, File(...)],
+    _: Annotated[None, Depends(verify_token)] = None,
 ) -> dict:
     data = await file.read()
 

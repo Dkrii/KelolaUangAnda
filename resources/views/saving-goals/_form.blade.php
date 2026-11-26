@@ -17,7 +17,7 @@
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div>
             <x-label for="target_amount">Target Nominal</x-label>
-            <x-input id="target_amount" name="target_amount" type="number" min="0.01" step="0.01" value="{{ old('target_amount', $goal->target_amount ?? '') }}" class="mt-1" :error="$errors->has('target_amount')" required />
+            <x-input id="target_amount" name="target_amount" type="number" min="0.01" step="0.01" value="{{ old('target_amount', $goal->target_amount ?? '') }}" class="mt-1" data-nominal :error="$errors->has('target_amount')" required />
             <x-input-error :messages="$errors->get('target_amount')" />
         </div>
         <div>

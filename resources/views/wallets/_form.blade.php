@@ -83,6 +83,7 @@
                 step="0.01"
                 min="0"
                 class="mt-1"
+                data-nominal
                 :value="old('initial_balance', $wallet?->initial_balance ?? 0)"
                 :error="$errors->has('initial_balance')"
                 required

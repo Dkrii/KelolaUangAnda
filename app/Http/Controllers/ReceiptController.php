@@ -9,6 +9,7 @@ use App\Http\Requests\StoreReceiptRequest;
 use App\Jobs\ProcessReceipt;
 use App\Models\Receipt;
 use App\Services\ReceiptService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -65,6 +66,15 @@ class ReceiptController extends Controller
         $this->authorize('view', $receipt);
 
         return Storage::disk('local')->response($receipt->path, $receipt->original_name);
+    }
+
+    public function status(Receipt $receipt): JsonResponse
+    {
+        $this->authorize('view', $receipt);
+
+        return response()->json([
+            'status' => $receipt->status->value,
+        ]);
     }
 
     public function retry(Receipt $receipt): RedirectResponse
