@@ -118,6 +118,37 @@ class ReportTest extends TestCase
         $response->assertDownload();
     }
 
+    public function test_pdf_view_marks_income_expense_and_transfer_rows(): void
+    {
+        $user = User::factory()->create();
+        $wallet = Wallet::factory()->create(['user_id' => $user->id]);
+        $destination = Wallet::factory()->create(['user_id' => $user->id]);
+        $incomeCategory = Category::factory()->income()->create(['user_id' => $user->id]);
+        $expenseCategory = Category::factory()->expense()->create(['user_id' => $user->id]);
+        $date = now()->toDateString();
+
+        $this->makeTransaction($user, $wallet, $incomeCategory, TransactionType::Income, '500000.00', $date);
+        $this->makeTransaction($user, $wallet, $expenseCategory, TransactionType::Expense, '200000.00', $date);
+        Transaction::factory()->transfer($destination)->create([
+            'user_id' => $user->id,
+            'wallet_id' => $wallet->id,
+            'amount' => '75000.00',
+            'transaction_date' => $date,
+        ]);
+
+        $report = app(ReportService::class)->build($user, ReportPeriod::Monthly, now());
+        $html = view('reports.pdf', ['report' => $report])->render();
+
+        $this->assertStringContainsString('income-row', $html);
+        $this->assertStringContainsString('expense-row', $html);
+        $this->assertStringContainsString('transfer-row', $html);
+        $this->assertStringContainsString('income-label', $html);
+        $this->assertStringContainsString('expense-label', $html);
+        $this->assertStringContainsString('#047857', $html);
+        $this->assertStringContainsString('#be123c', $html);
+        $this->assertStringContainsString('#4338ca', $html);
+    }
+
     public function test_excel_export_returns_a_spreadsheet_download(): void
     {
         $user = User::factory()->create();

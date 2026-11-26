@@ -10,9 +10,17 @@ Aplikasi keuangan pribadi untuk mencatat pemasukan, pengeluaran, transfer antar 
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 
-[Fitur](#fitur) · [Arsitektur](#arsitektur) · [Instalasi](#instalasi) · [Layanan OCR](#layanan-ocr) · [Pengujian](#pengujian) · [Struktur Proyek](#struktur-proyek)
+[Latar Belakang](#latar-belakang) · [Fitur](#fitur) · [Arsitektur](#arsitektur) · [Instalasi](#instalasi) · [Layanan OCR](#layanan-ocr) · [Pengujian](#pengujian) · [Struktur Proyek](#struktur-proyek)
 
 </div>
+
+## Latar Belakang
+
+Ketika catatan keuangan tersebar di dompet, rekening, dan struk, saldo mudah berbeda dari transaksi yang sebenarnya. Pola pengeluaran juga sulit dibaca tanpa ringkasan yang rapi.
+
+Kelola Uang Anda dibangun untuk menyatukan pencatatan pemasukan, pengeluaran, transfer antar dompet, anggaran, dan target tabungan dalam satu aplikasi. Saldo dompet dihitung dari transaksi agar sumber datanya tetap satu. Pemindaian struk ditambahkan untuk mengurangi ketikan manual, tetapi hasilnya tetap diperiksa pengguna sebelum menjadi transaksi.
+
+Tahap awal aplikasi ditujukan untuk pengguna individu. Arsitektur dan pembagian data per pengguna disiapkan agar fitur keluarga bisa ditambahkan kemudian.
 
 ## Tentang Proyek
 

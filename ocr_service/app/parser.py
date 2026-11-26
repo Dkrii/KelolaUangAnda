@@ -9,7 +9,59 @@ AMOUNT_PATTERN = re.compile(
     r"(?<![\d.,])(\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)(?![\d.,])"
 )
 
+MONTH_NAMES = {
+    "jan": 1,
+    "january": 1,
+    "januari": 1,
+    "feb": 2,
+    "february": 2,
+    "februari": 2,
+    "mar": 3,
+    "march": 3,
+    "maret": 3,
+    "apr": 4,
+    "april": 4,
+    "mei": 5,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "juni": 6,
+    "jul": 7,
+    "july": 7,
+    "juli": 7,
+    "aug": 8,
+    "august": 8,
+    "agu": 8,
+    "ags": 8,
+    "agustus": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "okt": 10,
+    "oct": 10,
+    "oktober": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "des": 12,
+    "dec": 12,
+    "desember": 12,
+    "december": 12,
+}
+
+MONTH_TOKENS = "|".join(re.escape(name) for name in sorted(MONTH_NAMES, key=len, reverse=True))
+MONTH_DATE_PATTERN = re.compile(
+    rf"\b(?:(?P<month_first>{MONTH_TOKENS})\s+(?P<day_first>\d{{1,2}})(?:,)?\s*(?P<year_first>\d{{4}})"
+    rf"|(?P<day_second>\d{{1,2}})\s+(?P<month_second>{MONTH_TOKENS})\s+(?P<year_second>\d{{4}}))\b",
+    re.IGNORECASE,
+)
+DATE_LABEL_PATTERN = re.compile(
+    r"\b(?:tgl|tanggal|date)\b",
+    re.IGNORECASE,
+)
+
 DATE_PATTERNS = [
+    (MONTH_DATE_PATTERN, "month"),
     (re.compile(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b"), "dmy"),
     (re.compile(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b"), "ymd"),
     (re.compile(r"\b(\d{1,2})[/-](\d{1,2})[/-](\d{2})\b"), "dmy"),
@@ -109,6 +161,14 @@ def parse_amount(value: object) -> Decimal | None:
     return amount.quantize(Decimal("0.01"))
 
 
+def _date_from_month_match(match: re.Match[str]) -> tuple[int, int, int]:
+    parts = match.groupdict()
+    month_name = parts["month_first"] or parts["month_second"]
+    day = parts["day_first"] or parts["day_second"]
+    year = parts["year_first"] or parts["year_second"]
+    return int(year), MONTH_NAMES[month_name.lower()], int(day)
+
+
 def parse_date(value: str) -> str | None:
     for pattern, order in DATE_PATTERNS:
         match = pattern.search(value)
@@ -116,7 +176,9 @@ def parse_date(value: str) -> str | None:
             continue
 
         try:
-            if order == "ymd":
+            if order == "month":
+                year, month, day = _date_from_month_match(match)
+            elif order == "ymd":
                 year, month, day = (int(part) for part in match.groups())
             else:
                 day, month, year = (int(part) for part in match.groups())
@@ -130,11 +192,30 @@ def parse_date(value: str) -> str | None:
     return None
 
 
+def _extract_transaction_date(lines: list[str]) -> tuple[str | None, bool]:
+    found = [parsed for line in lines if (parsed := parse_date(line)) is not None]
+    unique = set(found)
+    if not unique:
+        return None, False
+    if len(unique) == 1:
+        return found[0], False
+
+    labeled = {
+        parsed
+        for line in lines
+        if DATE_LABEL_PATTERN.search(line) and (parsed := parse_date(line)) is not None
+    }
+    if len(labeled) == 1:
+        return labeled.pop(), False
+
+    return None, True
+
+
 def _is_noise(line: str) -> bool:
     upper = line.upper()
     if any(token in upper for token in NOISE_TOKENS):
         return True
-    if re.search(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", line):
+    if parse_date(line) is not None:
         return True
     if re.match(r"^\d{1,2}:\d{2}", line):
         return True
@@ -225,7 +306,8 @@ def _suggest_category(lines: list[str]) -> str | None:
 def parse_receipt_text(text: str) -> dict:
     lines = [line.strip() for line in (text or "").splitlines() if line.strip()]
     merchant = next((line for line in lines if not _is_noise(line)), None)
-    transaction_date = next((found for line in lines if (found := parse_date(line))), None)
+    transaction_date, date_ambiguous = _extract_transaction_date(lines)
+    date_status = "ambiguous" if date_ambiguous else "detected" if transaction_date else "missing"
 
     total, total_source = _extract_total(lines)
     total_amount = int(total) if total is not None and total == total.to_integral_value() else None
@@ -280,7 +362,11 @@ def parse_receipt_text(text: str) -> dict:
         warnings.append(
             f"Jumlah item ({expected_total:.2f}) tidak cocok dengan total struk ({total:.2f}). Periksa kembali."
         )
-    if transaction_date is None:
+    if date_ambiguous:
+        warnings.append(
+            "Beberapa tanggal berbeda terdeteksi pada struk. Tentukan tanggal transaksi manual sebelum menyimpan."
+        )
+    elif transaction_date is None:
         warnings.append("Tanggal transaksi tidak terdeteksi. Isi manual sebelum menyimpan.")
     if total_amount is None:
         warnings.append("Total tidak terdeteksi dengan pasti dari label struk. Isi manual sebelum menyimpan.")
@@ -302,6 +388,7 @@ def parse_receipt_text(text: str) -> dict:
             "parser": "receipt-rules-v2",
             "line_count": len(lines),
             "total_source": total_source,
-            "needs_manual_verification": total_amount is None,
+            "date_status": date_status,
+            "needs_manual_verification": total_amount is None or date_status != "detected",
         },
     }

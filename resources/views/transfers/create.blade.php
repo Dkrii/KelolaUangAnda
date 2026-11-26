@@ -109,7 +109,7 @@
 
                 <div class="flex items-center justify-end gap-2 border-t border-neutral-100 pt-4">
                     <x-button variant="secondary" :href="route('transactions.index')">Batal</x-button>
-                    <x-button type="submit" :disabled="$wallets->count() < 2">Simpan Transfer</x-button>
+                    <x-button variant="indigo" type="submit" :disabled="$wallets->count() < 2">Simpan Transfer</x-button>
                 </div>
             </form>
         </x-card>

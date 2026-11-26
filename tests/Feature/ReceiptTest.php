@@ -78,7 +78,7 @@ class ReceiptTest extends TestCase
     public function test_upload_sends_image_to_ocr_and_stores_extraction(): void
     {
         Storage::fake('local');
-        Http::fake(['*' => Http::response($this->ocrPayload())]);
+        Http::fake(['*' => Http::response($this->ocrPayload(now()->toDateString()))]);
 
         $user = User::factory()->create();
 
@@ -111,7 +111,7 @@ class ReceiptTest extends TestCase
     public function test_upload_prefers_canonical_integer_total_amount(): void
     {
         Storage::fake('local');
-        Http::fake(['*' => Http::response(array_merge($this->ocrPayload(), [
+        Http::fake(['*' => Http::response(array_merge($this->ocrPayload(now()->toDateString()), [
             'total' => '99999.00',
             'total_amount' => 25000,
         ]))]);
@@ -125,6 +125,54 @@ class ReceiptTest extends TestCase
         $receipt = Receipt::query()->firstOrFail();
 
         $this->assertSame('25000.00', (string) $receipt->total);
+    }
+
+    public function test_upload_preserves_canonical_ocr_transaction_date(): void
+    {
+        Storage::fake('local');
+        Http::fake(['*' => Http::response($this->ocrPayload('2023-06-18'))]);
+
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->post(route('receipts.store'), [
+            'image' => UploadedFile::fake()->image('struk.png', 640, 480)->size(128),
+        ]);
+
+        $receipt = Receipt::query()->firstOrFail();
+
+        $response->assertRedirect(route('receipts.show', $receipt));
+        $this->assertSame('2023-06-18', $receipt->transaction_date->toDateString());
+
+        $this->actingAs($user)
+            ->get(route('receipts.show', $receipt))
+            ->assertOk()
+            ->assertSee('18 June 2023')
+            ->assertSeeInOrder(['name="transaction_date"', 'value="2023-06-18"'], false);
+    }
+
+    public function test_upload_keeps_missing_ocr_date_empty_for_manual_entry(): void
+    {
+        Storage::fake('local');
+        Http::fake(['*' => Http::response(array_merge($this->ocrPayload(null), [
+            'warnings' => ['Tanggal transaksi tidak terdeteksi. Isi manual sebelum menyimpan.'],
+        ]))]);
+
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->post(route('receipts.store'), [
+            'image' => UploadedFile::fake()->image('struk.png', 640, 480)->size(128),
+        ]);
+
+        $receipt = Receipt::query()->firstOrFail();
+
+        $this->assertNull($receipt->transaction_date);
+
+        $this->actingAs($user)
+            ->get(route('receipts.show', $receipt))
+            ->assertOk()
+            ->assertSee('Tanggal transaksi tidak terdeteksi. Isi manual sebelum menyimpan.')
+            ->assertSeeInOrder(['name="transaction_date"', 'value=""'], false)
+            ->assertDontSee('value="'.now()->toDateString().'"', false);
     }
 
     public function test_upload_rejects_invalid_image_and_oversized_file(): void
@@ -151,7 +199,7 @@ class ReceiptTest extends TestCase
         Storage::fake('local');
         Http::fakeSequence()
             ->push('Gagal', 500)
-            ->push($this->ocrPayload());
+            ->push($this->ocrPayload(now()->toDateString()));
 
         $user = User::factory()->create();
         $receipt = $this->reviewReceipt($user, ReceiptStatus::Failed);
@@ -317,11 +365,11 @@ class ReceiptTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function ocrPayload(): array
+    private function ocrPayload(?string $transactionDate = null): array
     {
         return [
             'merchant' => 'Toko Contoh',
-            'transaction_date' => now()->toDateString(),
+            'transaction_date' => $transactionDate,
             'total' => '25000.00',
             'items' => [
                 [

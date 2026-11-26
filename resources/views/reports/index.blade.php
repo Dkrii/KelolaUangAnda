@@ -23,8 +23,8 @@
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <x-button type="submit">Tampilkan</x-button>
-                    <x-button variant="secondary" :href="route('reports.pdf', $filters)">Export PDF</x-button>
-                    <x-button variant="secondary" :href="route('reports.excel', $filters)">Export Excel</x-button>
+                    <x-button variant="rose" :href="route('reports.pdf', $filters)">Export PDF</x-button>
+                    <x-button variant="emerald" :href="route('reports.excel', $filters)">Export Excel</x-button>
                 </div>
             </form>
         </x-card>

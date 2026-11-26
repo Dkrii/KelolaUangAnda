@@ -6,7 +6,7 @@
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-sm text-neutral-500">Catat pemasukan, pengeluaran, dan transfer antar dompet.</p>
             <div class="flex flex-wrap gap-2">
-                <x-button variant="secondary" :href="route('transfers.create')">Transfer</x-button>
+                <x-button variant="indigo" :href="route('transfers.create')">Transfer</x-button>
                 <x-button :href="route('transactions.create')">Tambah Transaksi</x-button>
             </div>
         </div>
@@ -75,7 +75,7 @@
                 </div>
 
                 <div class="flex items-center gap-2 border-t border-neutral-100 pt-4">
-                    <x-button type="submit" variant="secondary">Terapkan Filter</x-button>
+                    <x-button type="submit" variant="emerald">Terapkan Filter</x-button>
                     <a
                         href="{{ route('transactions.index') }}"
                         class="rounded-lg px-3 py-2 text-sm font-medium text-neutral-500 hover:text-neutral-800"

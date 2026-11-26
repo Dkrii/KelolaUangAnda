@@ -230,7 +230,7 @@
                                     name="transaction_date"
                                     type="date"
                                     required
-                                    :value="old('transaction_date', $receipt->transaction_date?->toDateString() ?? now()->toDateString())"
+                                    :value="old('transaction_date', $receipt->transaction_date?->toDateString() ?? '')"
                                     :error="$errors->has('transaction_date')"
                                 />
                                 <x-input-error :messages="$errors->get('transaction_date')" class="mt-2" />

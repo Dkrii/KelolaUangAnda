@@ -43,11 +43,43 @@ def test_ocr_requires_valid_token(client, png_bytes, fake_engine):
     assert response.status_code == 200
     body = response.json()
     assert body["merchant"] == "TOKO SUMBER REJEKI"
+    assert body["transaction_date"] == "2026-11-25"
     assert body["total"] == "7000.00"
     assert body["total_amount"] == 7000
     assert body["currency"] == "IDR"
     assert body["items"][0]["name"] == "Indomie"
     assert body["ocr_confidence"] == 0.975
+
+
+def test_ocr_returns_month_name_date(client, png_bytes, monkeypatch):
+    lines = [
+        "KOPI NAKO",
+        "Print :1",
+        "Summarecon Bekasi",
+        "==",
+        "Jun 18, 2023 7:32:42 PM",
+        "By: Anggi",
+        "Computer Name: cashier1",
+        "Served By: Anggi",
+        "Jun 18, 2023 7:33:47 PM",
+        "TAKE",
+        "TOTAL 75,400",
+    ]
+
+    class Predictor:
+        def predict(self, image):
+            return [{"rec_texts": lines, "rec_scores": [0.99] * len(lines)}]
+
+    monkeypatch.setattr(engine, "_get_engine", lambda: Predictor())
+
+    response = client.post(
+        "/ocr",
+        files={"file": ("struk.png", png_bytes, "image/png")},
+        headers={"X-OCR-Token": settings.shared_secret},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["transaction_date"] == "2023-06-18"
 
 
 def test_ocr_rejects_bad_payloads(client, png_bytes, fake_engine):

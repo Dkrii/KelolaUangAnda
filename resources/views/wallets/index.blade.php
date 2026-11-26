@@ -13,7 +13,7 @@
             </div>
 
             <div class="flex flex-wrap gap-2">
-                <x-button variant="secondary" :href="route('transfers.create')">Transfer</x-button>
+                <x-button variant="indigo" :href="route('transfers.create')">Transfer</x-button>
                 <x-button :href="route('wallets.create')">Tambah Dompet</x-button>
             </div>
         </div>
